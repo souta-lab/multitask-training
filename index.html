@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マルチタスクトレーニング</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+        }
+
+        .score-panel {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .score-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .time-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 10px 15px;
+        }
+
+        .time-input {
+            width: 60px;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1em;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-reset {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.3);
+        }
+
+        .game-area {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .target {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #ff6b6b, #ee5a52);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .target:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .target.hit {
+            animation: hitEffect 0.3s ease;
+        }
+
+        @keyframes hitEffect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); background: #4CAF50; }
+            100% { transform: scale(1); }
+        }
+
+        .instruction {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 800px;
+        }
+
+        .current-key {
+            font-size: 3em;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 10px 0;
+        }
+
+        .feedback {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            padding: 15px 25px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+            transform: translateX(100px);
+        }
+
+        .feedback.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .feedback.success {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+
+        .feedback.error {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .final-score {
+            font-size: 3em;
+            margin: 20px 0;
+            color: #FFD700;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="score-panel">
+                <div class="score-item">
+                    <span class="score-value" id="score">0</span>
+                    <span class="score-label">スコア</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-value" id="timer">60</span>
+                    <span class="score-label">残り時間</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-value" id="hits">0</span>
+                    <span class="score-label">成功</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-value" id="misses">0</span>
+                    <span class="score-label">ミス</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="time-control">
+                    <label>時間:</label>
+                    <input type="number" class="time-input" id="timeInput" value="60" min="10" max="300">
+                    <span>秒</span>
+                </div>
+                <button class="btn btn-start" id="startBtn">スタート</button>
+                <button class="btn btn-reset" id="resetBtn">リセット</button>
+            </div>
+        </div>
+
+        <div class="instruction">
+            <div>赤い的をクリックまたは表示されたキーを押してください</div>
+            <div class="current-key" id="currentKey">-</div>
+            <div>片方をクリアすると次のタスクが表示されます</div>
+        </div>
+
+        <div class="game-area" id="gameArea"></div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>ゲーム終了</h2>
+            <div class="final-score" id="finalScore">0</div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div>成功数</div>
+                    <div id="finalHits">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>ミス数</div>
+                    <div id="finalMisses">0</div>
+                </div>
+                <div class="stat-item">
+                    <div>精度</div>
+                    <div id="accuracy">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div>評価</div>
+                    <div id="rating">-</div>
+                </div>
+            </div>
+            <button class="btn btn-start" onclick="restartGame()">もう一度</button>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            hits: 0,
+            misses: 0,
+            timeLeft: 60,
+            gameTimer: null,
+            // ターゲットシステム
+            currentTarget: null,
+            targetActive: true,
+            targetCount: 0,
+            // キーシステム
+            currentKey: '',
+            keyActive: true,
+            keyCount: 0
+        };
+
+        const elements = {
+            score: document.getElementById('score'),
+            timer: document.getElementById('timer'),
+            hits: document.getElementById('hits'),
+            misses: document.getElementById('misses'),
+            currentKey: document.getElementById('currentKey'),
+            gameArea: document.getElementById('gameArea'),
+            startBtn: document.getElementById('startBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            timeInput: document.getElementById('timeInput'),
+            feedback: document.getElementById('feedback'),
+            gameOver: document.getElementById('gameOver'),
+            finalScore: document.getElementById('finalScore'),
+            finalHits: document.getElementById('finalHits'),
+            finalMisses: document.getElementById('finalMisses'),
+            accuracy: document.getElementById('accuracy'),
+            rating: document.getElementById('rating')
+        };
+
+        function startGame() {
+            if (gameState.isPlaying) return;
+            
+            gameState.isPlaying = true;
+            gameState.score = 0;
+            gameState.hits = 0;
+            gameState.misses = 0;
+            gameState.timeLeft = parseInt(elements.timeInput.value);
+            gameState.targetCount = 0;
+            gameState.keyCount = 0;
+            
+            elements.startBtn.textContent = '実行中...';
+            elements.startBtn.disabled = true;
+            
+            updateDisplay();
+            
+            // 両方のタスクを独立して開始
+            createNewTarget();
+            createNewKey();
+            
+            gameState.gameTimer = setInterval(() => {
+                gameState.timeLeft--;
+                elements.timer.textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.gameTimer);
+            
+            // ターゲットをクリア
+            clearAllTargets();
+            
+            elements.startBtn.textContent = 'スタート';
+            elements.startBtn.disabled = false;
+            elements.currentKey.textContent = '-';
+            gameState.targetActive = false;
+            gameState.keyActive = false;
+            
+            showGameOver();
+        }
+
+        function resetGame() {
+            if (gameState.isPlaying) {
+                endGame();
+            }
+            
+            gameState.score = 0;
+            gameState.hits = 0;
+            gameState.misses = 0;
+            gameState.timeLeft = parseInt(elements.timeInput.value);
+            gameState.targetCount = 0;
+            gameState.keyCount = 0;
+            gameState.targetActive = false;
+            gameState.keyActive = false;
+            
+            clearAllTargets();
+            updateDisplay();
+            elements.currentKey.textContent = '-';
+        }
+
+        function clearAllTargets() {
+            const targets = elements.gameArea.querySelectorAll('.target');
+            targets.forEach(target => target.remove());
+            gameState.currentTarget = null;
+        }
+
+        function createNewTarget() {
+            if (!gameState.isPlaying) return;
+            
+            // 新しいターゲットを生成
+            const target = document.createElement('div');
+            target.className = 'target';
+            target.dataset.targetId = gameState.targetCount++;
+            
+            const maxX = elements.gameArea.clientWidth - 50;
+            const maxY = elements.gameArea.clientHeight - 50;
+            
+            target.style.left = Math.random() * maxX + 'px';
+            target.style.top = Math.random() * maxY + 'px';
+            
+            // クリックイベントを追加
+            target.addEventListener('click', function(e) {
+                handleTargetClick(e, this);
+            });
+            
+            elements.gameArea.appendChild(target);
+            gameState.currentTarget = target;
+        }
+
+        function createNewKey() {
+            if (!gameState.isPlaying) return;
+            
+            // 新しいキーを生成
+            gameState.currentKey = String.fromCharCode(97 + Math.floor(Math.random() * 26)); // a-z
+            elements.currentKey.textContent = gameState.currentKey.toUpperCase();
+            gameState.keyCount++;
+        }
+
+        function handleTargetClick(e, targetElement) {
+            if (!gameState.isPlaying) return;
+            
+            // クリックされたターゲットを削除
+            targetElement.classList.add('hit');
+            
+            gameState.hits++;
+            gameState.score += 5;
+            
+            showFeedback('Target Hit!', 'success');
+            updateDisplay();
+            
+            // ターゲットを削除して新しいものを作成
+            setTimeout(() => {
+                if (targetElement.parentNode) {
+                    targetElement.remove();
+                }
+                createNewTarget();
+            }, 100);
+        }
+
+        function handleKeyPress(e) {
+            if (!gameState.isPlaying) return;
+            
+            const pressedKey = e.key.toLowerCase();
+            
+            if (pressedKey === gameState.currentKey) {
+                gameState.hits++;
+                gameState.score += 5;
+                showFeedback('Key Success!', 'success');
+                updateDisplay();
+                
+                // 新しいキーを即座に生成
+                createNewKey();
+            } else if (pressedKey >= 'a' && pressedKey <= 'z') {
+                // 間違ったキーを押した場合
+                gameState.misses++;
+                gameState.score = Math.max(0, gameState.score - 3);
+                showFeedback('Wrong Key!', 'error');
+                updateDisplay();
+            }
+        }
+
+        function showFeedback(message, type) {
+            elements.feedback.textContent = message;
+            elements.feedback.className = `feedback ${type}`;
+            elements.feedback.classList.add('show');
+            
+            setTimeout(() => {
+                elements.feedback.classList.remove('show');
+            }, 1000);
+        }
+
+        function updateDisplay() {
+            elements.score.textContent = gameState.score;
+            elements.hits.textContent = gameState.hits;
+            elements.misses.textContent = gameState.misses;
+            elements.timer.textContent = gameState.timeLeft;
+        }
+
+        function showGameOver() {
+            const total = gameState.hits + gameState.misses;
+            const accuracy = total > 0 ? Math.round((gameState.hits / total) * 100) : 0;
+            
+            let rating = '';
+            if (accuracy >= 90) rating = 'パーフェクト！';
+            else if (accuracy >= 80) rating = '素晴らしい！';
+            else if (accuracy >= 70) rating = '良い！';
+            else if (accuracy >= 60) rating = '普通';
+            else rating = '要練習';
+            
+            elements.finalScore.textContent = gameState.score;
+            elements.finalHits.textContent = gameState.hits;
+            elements.finalMisses.textContent = gameState.misses;
+            elements.accuracy.textContent = accuracy + '%';
+            elements.rating.textContent = rating;
+            
+            elements.gameOver.style.display = 'flex';
+        }
+
+        function restartGame() {
+            elements.gameOver.style.display = 'none';
+            resetGame();
+            startGame();
+        }
+
+        // イベントリスナー
+        elements.startBtn.addEventListener('click', startGame);
+        elements.resetBtn.addEventListener('click', resetGame);
+        document.addEventListener('keydown', handleKeyPress);
+
+        // ゲームオーバー画面を閉じる
+        elements.gameOver.addEventListener('click', (e) => {
+            if (e.target === elements.gameOver) {
+                elements.gameOver.style.display = 'none';
+            }
+        });
+
+        // 初期表示更新
+        updateDisplay();
+    </script>
+</body>
+</html>
