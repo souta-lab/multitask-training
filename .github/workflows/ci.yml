@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  html:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify index.html exists and has a title
+        run: |
+          test -f index.html
+          grep -q '<title>.\+</title>' index.html
+      - name: Parse HTML with stdlib parser
+        run: python3 -c "import html.parser; p=html.parser.HTMLParser(); p.feed(open('index.html').read()); print('parse ok')"
+      - name: Serve smoke test
+        run: |
+          python3 -m http.server 8901 >/dev/null 2>&1 &
+          sleep 1
+          curl -sf http://localhost:8901/index.html | grep -q '<title>'
