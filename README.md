@@ -2,6 +2,8 @@
 
 A multitasking training game — test your ability to handle multiple tasks simultaneously.
 
+**Live demo:** https://souta-lab.github.io/multitask-training/
+
 ## How to play
 
 Handle two tasks at once: click targets while responding to keypress prompts. Your score reflects both speed and accuracy across tasks.
